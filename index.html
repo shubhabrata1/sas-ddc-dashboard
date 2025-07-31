@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Index</title>
+  <style>
+    body { display: flex; font-family: Arial; height: 100vh; margin: 0; }
+    .left-panel {
+      width: 30%;
+      background-color: #f0f0f0;
+      padding: 10px;
+      overflow-y: auto;
+    }
+    .right-panel {
+      width: 70%;
+      padding: 10px;
+      border-left: 1px solid #ccc;
+      overflow-y: auto;
+    }
+    .usecase {
+      margin: 8px 0;
+      padding: 6px;
+      cursor: pointer;
+      background-color: #ddd;
+      border-radius: 4px;
+    }
+    .dashboard {
+      margin: 5px 0;
+      padding: 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .dashboard:hover {
+      background-color: #e6f2ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="left-panel" id="usecase-list">Loading...</div>
+  <div class="right-panel" id="dashboard-list">Hover over a use case</div>
+
+  <script>
+    let allData = [];
+
+    function renderUseCases(data) {
+      const container = document.getElementById('usecase-list');
+      container.innerHTML = '';
+      const useCases = [...new Set(data.map(row => row[0]))];
+
+      useCases.forEach(useCase => {
+        const div = document.createElement('div');
+        div.className = 'usecase';
+        div.textContent = useCase;
+        div.onmouseover = () => showDashboards(useCase);
+        container.appendChild(div);
+      });
+    }
+
+    function showDashboards(useCaseName) {
+      const rightPanel = document.getElementById('dashboard-list');
+      rightPanel.innerHTML = '';
+      const filtered = allData.filter(row => row[0] === useCaseName);
+
+      filtered.forEach(row => {
+        const [_, dashboardName, link] = row;
+        const div = document.createElement('div');
+        div.className = 'dashboard';
+        div.textContent = dashboardName;
+
+        div.onclick = () => {
+          window.parent.postMessage({
+            type: "sas.navigation",
+            action: "drillToUrl",
+            data: {
+              url: link,
+              target: "_blank"
+            }
+          }, "*");
+        };
+
+        rightPanel.appendChild(div);
+      });
+    }
+
+    window.addEventListener("message", function(event) {
+      const data = event.data;
+      if (data && data.data && data.data.length > 0) {
+        allData = data.data;
+        renderUseCases(data.data);
+      }
+    }, false);
+  </script>
+</body>
+</html>
