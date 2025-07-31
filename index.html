@@ -2,90 +2,114 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard Index</title>
+  <title>SAS Viya DDC Drilldown</title>
   <style>
-    body { display: flex; font-family: Arial; height: 100vh; margin: 0; }
+    body {
+      display: flex;
+      font-family: 'Segoe UI', sans-serif;
+      height: 100vh;
+      margin: 0;
+      background-color: #f9f9f9;
+    }
     .left-panel {
       width: 30%;
-      background-color: #f0f0f0;
-      padding: 10px;
-      overflow-y: auto;
+      background-color: #1e2a38;
+      color: #ffffff;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
     }
     .right-panel {
       width: 70%;
-      padding: 10px;
-      border-left: 1px solid #ccc;
+      padding: 20px;
+      background-color: #ffffff;
       overflow-y: auto;
     }
     .usecase {
-      margin: 8px 0;
-      padding: 6px;
-      cursor: pointer;
-      background-color: #ddd;
+      background-color: #32465a;
+      margin: 10px 0;
+      padding: 10px;
       border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .usecase:hover {
+      background-color: #4b6075;
     }
     .dashboard {
-      margin: 5px 0;
-      padding: 6px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      margin: 10px 0;
+      padding: 10px;
+      border-left: 4px solid #007bff;
+      background: #eef5ff;
       cursor: pointer;
+      font-weight: 500;
     }
     .dashboard:hover {
-      background-color: #e6f2ff;
+      background: #dcecff;
+    }
+    h2 {
+      margin-top: 0;
     }
   </style>
 </head>
 <body>
-  <div class="left-panel" id="usecase-list">Loading...</div>
-  <div class="right-panel" id="dashboard-list">Hover over a use case</div>
+  <div class="left-panel" id="usecase-list">Loading use cases...</div>
+  <div class="right-panel">
+    <h2 id="usecase-title">Hover over a use case</h2>
+    <div id="dashboard-list"></div>
+  </div>
 
   <script>
     let allData = [];
 
     function renderUseCases(data) {
-      const container = document.getElementById('usecase-list');
-      container.innerHTML = '';
-      const useCases = [...new Set(data.map(row => row[0]))];
+      const usecaseList = document.getElementById("usecase-list");
+      usecaseList.innerHTML = "";
 
-      useCases.forEach(useCase => {
-        const div = document.createElement('div');
-        div.className = 'usecase';
-        div.textContent = useCase;
-        div.onmouseover = () => showDashboards(useCase);
-        container.appendChild(div);
+      const usecases = [...new Set(data.map(row => row[0]))];
+
+      usecases.forEach(usecase => {
+        const div = document.createElement("div");
+        div.className = "usecase";
+        div.textContent = usecase;
+        div.onmouseover = () => showDashboards(usecase);
+        usecaseList.appendChild(div);
       });
     }
 
-    function showDashboards(useCaseName) {
-      const rightPanel = document.getElementById('dashboard-list');
-      rightPanel.innerHTML = '';
-      const filtered = allData.filter(row => row[0] === useCaseName);
+    function showDashboards(usecase) {
+      const dashboardList = document.getElementById("dashboard-list");
+      const title = document.getElementById("usecase-title");
+      title.textContent = usecase;
+      dashboardList.innerHTML = "";
 
-      filtered.forEach(row => {
-        const [_, dashboardName, link] = row;
-        const div = document.createElement('div');
-        div.className = 'dashboard';
+      const dashboards = allData.filter(row => row[0] === usecase);
+
+      dashboards.forEach(row => {
+        const dashboardName = row[1];
+        const link = row[2];
+        const div = document.createElement("div");
+        div.className = "dashboard";
         div.textContent = dashboardName;
 
         div.onclick = () => {
-  const a = document.createElement("a");
-  a.href = link;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  a.click();
-};
+          window.parent.postMessage({
+            type: "sas.navigation",
+            action: "drillToUrl",
+            data: {
+              url: link,
+              target: "_blank"
+            }
+          }, "*");
+        };
 
-
-        rightPanel.appendChild(div);
+        dashboardList.appendChild(div);
       });
     }
 
     window.addEventListener("message", function(event) {
-      const data = event.data;
-      if (data && data.data && data.data.length > 0) {
-        allData = data.data;
-        renderUseCases(data.data);
+      if (event?.data?.data?.length > 0) {
+        allData = event.data.data;
+        renderUseCases(allData);
       }
     }, false);
   </script>
